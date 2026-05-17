@@ -13,7 +13,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 const vite = await createViteServer({
   root: path.resolve(__dirname, "../client"),
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, hmr: false },
   appType: "spa",
   configFile: path.resolve(__dirname, "../vite.config.ts"),
 });
