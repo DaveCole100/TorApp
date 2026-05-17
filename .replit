@@ -1,26 +1,19 @@
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "nix"]
 
 [nix]
 channel = "stable-24_05"
 
+[[ports]]
+localPort = 3000
+externalPort = 80
+
 [workflows]
-runButton = "Start"
+runButton = "Run"
 
 [[workflows.workflow]]
-name = "Start"
+name = "Run"
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[deployment]
-run = ["sh", "-c", "npm install && npm run dev"]
-
-[[ports]]
-localPort = 3000
-externalPort = 80
+args = "npm install && npm run dev"

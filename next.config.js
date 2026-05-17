@@ -3,6 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverComponentsExternalPackages: ["postgres"],
+    instrumentationHook: true,
   },
 };
 
