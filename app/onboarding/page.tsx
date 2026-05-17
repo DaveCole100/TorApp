@@ -2,11 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight, Building2, Palette, Clock, Scissors, ArrowLeft } from "lucide-react";
+import { Check, ChevronRight, Building2, Palette, Clock, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
 
 const CATEGORIES = [
   "מספרה לגברים","מספרה לנשים","מספרה לכל המשפחה",
@@ -19,10 +18,10 @@ const CATEGORIES = [
 const DAYS = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
 
 type DaySchedule = { is_open: boolean; open: string; close: string };
-type Schedule = Record<number, DaySchedule>;
+type Schedule    = Record<number, DaySchedule>;
 
 const DEFAULT_SCHEDULE: Schedule = {
-  0: { is_open: false, open: "09:00", close: "18:00" }, // Sunday - closed in Israel
+  0: { is_open: false, open: "09:00", close: "18:00" },
   1: { is_open: true,  open: "09:00", close: "20:00" },
   2: { is_open: true,  open: "09:00", close: "20:00" },
   3: { is_open: true,  open: "09:00", close: "20:00" },
@@ -47,56 +46,31 @@ export default function OnboardingPage() {
   const slugify = (v: string) =>
     v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 40);
 
-  const handleNameChange = (v: string) => {
-    setName(v);
-    setSlug(slugify(v));
-  };
+  const handleNameChange = (v: string) => { setName(v); setSlug(slugify(v)); };
 
   const COLORS = ["#4F46E5","#7C3AED","#DB2777","#DC2626","#EA580C","#16A34A","#0284C7","#374151"];
 
   const canNext = () => {
-    if (step === 1) return name.trim().length > 2 && category;
-    if (step === 2) return true;
-    if (step === 3) return true;
+    if (step === 1) return name.trim().length > 2 && !!category;
     return true;
   };
 
   const handleFinish = async () => {
     setLoading(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("יש להתחבר מחדש"); router.push("/login"); return; }
-
-    const finalSlug = slug || slugify(name);
-
-    // Create tenant
-    const { data: tenant, error: tError } = await supabase
-      .from("tenants")
-      .insert({
-        name, slug: finalSlug, category, phone, whatsapp,
-        primary_color: color, onboarding_completed: true, onboarding_step: 4,
-      })
-      .select().single();
-
-    if (tError) {
-      toast.error(tError.message.includes("unique") ? "שם העסק כבר תפוס, נסה שם אחר" : tError.message);
+    const res = await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name, slug: slug || slugify(name), category, phone, whatsapp,
+        primaryColor: color, schedule,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error ?? "שגיאה ביצירת העסק");
       setLoading(false);
       return;
     }
-
-    // Link user to tenant
-    await supabase.from("tenant_members").insert({ tenant_id: tenant.id, user_id: user.id, role: "owner" });
-
-    // Save business hours
-    const hours = Object.entries(schedule).map(([day, h]) => ({
-      tenant_id: tenant.id,
-      day_of_week: parseInt(day),
-      is_open: h.is_open,
-      open_time: h.open,
-      close_time: h.close,
-    }));
-    await supabase.from("business_hours").insert(hours);
-
     toast.success("העסק נוצר בהצלחה! 🎉");
     router.push("/dashboard");
     router.refresh();
@@ -112,7 +86,6 @@ export default function OnboardingPage() {
     <div className="min-h-dvh bg-gradient-to-br from-brand-50 via-white to-violet-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
 
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex w-12 h-12 rounded-2xl items-center justify-center text-white font-black text-xl mb-4"
             style={{ background: color }}>T</div>
@@ -120,7 +93,6 @@ export default function OnboardingPage() {
           <p className="text-gray-400 text-sm mt-1">לוקח 2 דקות, מבטיחים!</p>
         </div>
 
-        {/* Step indicators */}
         <div className="flex items-center justify-center gap-2 mb-8">
           {STEPS.map((s, i) => (
             <div key={s.num} className="flex items-center gap-2">
@@ -143,7 +115,6 @@ export default function OnboardingPage() {
             <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
 
-              {/* Step 1: Business details */}
               {step === 1 && (
                 <div className="flex flex-col gap-4">
                   <div>
@@ -175,7 +146,6 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 2: Branding */}
               {step === 2 && (
                 <div className="flex flex-col gap-5">
                   <div>
@@ -214,7 +184,6 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 3: Hours */}
               {step === 3 && (
                 <div className="flex flex-col gap-4">
                   <div>
@@ -251,7 +220,6 @@ export default function OnboardingPage() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation */}
           <div className="flex gap-3 mt-6">
             {step > 1 && (
               <Button variant="secondary" onClick={() => setStep(s => s - 1)} className="flex-1">

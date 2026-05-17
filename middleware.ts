@@ -1,49 +1,38 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getIronSession } from "iron-session";
+import type { SessionData } from "@/lib/auth/session";
+import { SESSION_OPTIONS } from "@/lib/auth/session";
 
-const PUBLIC_PATHS = ["/book", "/api/booking", "/api/auth"];
-const AUTH_PATHS   = ["/login", "/signup", "/reset-password"];
+const PUBLIC_PATHS  = ["/book", "/api/booking", "/api/auth"];
+const AUTH_PATHS    = ["/login", "/signup"];
+const OPEN_API      = ["/api/setup"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public booking pages and API
-  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
+  if (
+    PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
+    OPEN_API.some(p => pathname.startsWith(p)) ||
+    pathname.startsWith("/_next") ||
+    pathname.includes(".")
+  ) {
     return NextResponse.next();
   }
 
-  let response = NextResponse.next({ request });
+  const res = NextResponse.next();
+  const session = await getIronSession<SessionData>(request, res, SESSION_OPTIONS);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const isAuthed = session.isLoggedIn === true;
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Redirect unauthenticated users to login (except auth pages)
-  if (!user && !AUTH_PATHS.some(p => pathname.startsWith(p)) && pathname !== "/") {
+  if (!isAuthed && !AUTH_PATHS.some(p => pathname.startsWith(p)) && pathname !== "/") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && AUTH_PATHS.some(p => pathname.startsWith(p))) {
+  if (isAuthed && AUTH_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return response;
+  return res;
 }
 
 export const config = {

@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -19,13 +18,17 @@ export default function SignupPage() {
     e.preventDefault();
     if (password.length < 8) { toast.error("הסיסמה חייבת להכיל לפחות 8 תווים"); return; }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } },
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, fullName: name }),
     });
-    if (error) { toast.error(error.message); setLoading(false); return; }
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error ?? "שגיאה בהרשמה");
+      setLoading(false);
+      return;
+    }
     toast.success("החשבון נוצר! מעבר לאשף ההגדרות...");
     router.push("/onboarding");
     router.refresh();
@@ -34,7 +37,6 @@ export default function SignupPage() {
   return (
     <div className="min-h-dvh bg-gradient-to-br from-brand-50 via-white to-violet-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-600 text-white text-2xl font-black shadow-brand-glow mb-4">
             T
@@ -79,8 +81,7 @@ export default function SignupPage() {
             </Button>
           </form>
           <p className="text-[11px] text-gray-400 text-center mt-4">
-            בהרשמה אתם מסכימים ל
-            <a href="#" className="underline">תנאי השימוש</a>
+            בהרשמה אתם מסכימים ל<a href="#" className="underline">תנאי השימוש</a>
           </p>
         </div>
 

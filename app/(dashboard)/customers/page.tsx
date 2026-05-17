@@ -1,27 +1,31 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth/session";
+import { db, customers, tenantMembers } from "@/lib/db";
+import { eq, desc } from "drizzle-orm";
 import { Users, Phone, Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatRelative } from "@/lib/utils/format";
 
 export default async function CustomersPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  const { data: member } = await supabase.from("tenant_members").select("tenant_id").eq("user_id", user.id).single();
+  const session = await requireSession();
+  if (!session) redirect("/login");
+
+  const [member] = await db
+    .select({ tenantId: tenantMembers.tenantId })
+    .from(tenantMembers)
+    .where(eq(tenantMembers.userId, session.userId))
+    .limit(1);
   if (!member) redirect("/onboarding");
 
-  const { data: customers } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("tenant_id", member.tenant_id)
-    .order("last_visit_at", { ascending: false });
-
-  const list = customers ?? [];
+  const list = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.tenantId, member.tenantId))
+    .orderBy(desc(customers.lastVisitAt));
 
   function Initials({ name }: { name: string }) {
-    const i = name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+    const i = name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
     return (
       <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm shrink-0">{i}</div>
     );
@@ -44,31 +48,31 @@ export default async function CustomersPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {list.map((c: any) => (
+          {list.map(c => (
             <Card key={c.id} padding="md" hover>
               <div className="flex items-center gap-4">
                 <Initials name={c.name} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm text-gray-900">{c.name}</span>
-                    {c.no_show_count > 0 && (
-                      <Badge variant="danger" size="sm">{c.no_show_count} no-show</Badge>
+                    {c.noShowCount > 0 && (
+                      <Badge variant="danger" size="sm">{c.noShowCount} no-show</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       <Phone size={10} />{c.phone}
                     </span>
-                    {c.last_visit_at && (
+                    {c.lastVisitAt && (
                       <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Calendar size={10} />ביקור אחרון: {formatRelative(c.last_visit_at)}
+                        <Calendar size={10} />ביקור אחרון: {formatRelative(c.lastVisitAt)}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="text-left shrink-0">
-                  <p className="font-black text-base text-brand-600">{formatPrice(c.total_spent)}</p>
-                  <p className="text-xs text-gray-400">{c.visit_count} ביקורים</p>
+                  <p className="font-black text-base text-brand-600">{formatPrice(parseFloat(c.totalSpent))}</p>
+                  <p className="text-xs text-gray-400">{c.visitCount} ביקורים</p>
                 </div>
               </div>
             </Card>

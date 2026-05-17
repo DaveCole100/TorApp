@@ -1,17 +1,15 @@
 "use client";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, X, Check, Clock, MapPin, Phone, MessageCircle, Instagram, Star } from "lucide-react";
-import { format, addDays, isSunday, isBefore, startOfDay } from "date-fns";
+import { ChevronRight, X, Check, Clock, MapPin, Phone, MessageCircle, Instagram } from "lucide-react";
+import { format, addDays, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDuration } from "@/lib/utils/format";
-import { getAvailableSlots } from "@/lib/booking/engine";
-import { createClient } from "@/lib/supabase/client";
-import type { Tenant, Service, Staff, BusinessHours } from "@/types/database";
+import type { Tenant, Service, Staff, BusinessHours } from "@/lib/db/schema";
 
 type Step = "home" | "service" | "staff" | "datetime" | "details" | "success";
 
@@ -52,10 +50,8 @@ function categoryGradient(name: string): string {
 function Avatar({ name, size = 48, color }: { name: string; size?: number; color?: string }) {
   const initials = name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return (
-    <div
-      className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
-      style={{ width: size, height: size, background: color ?? "#4F46E5", fontSize: size * 0.35 }}
-    >
+    <div className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+      style={{ width: size, height: size, background: color ?? "#4F46E5", fontSize: size * 0.35 }}>
       {initials}
     </div>
   );
@@ -83,74 +79,47 @@ export function BookingShell({
   staff: Staff[];
   businessHours: BusinessHours[];
 }) {
-  const p = tenant.primary_color;
+  const p = tenant.primaryColor;
 
   const [step,    setStep]    = useState<Step>("home");
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState<BookingState>({
     service: null, staff: null, date: "", time: "", name: "", phone: "", notes: "",
   });
-  const [slots,    setSlots]    = useState<{ time: string; available: boolean }[]>([]);
+  const [slots,        setSlots]        = useState<{ time: string; available: boolean }[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Group services by category
   const grouped = useMemo(() => {
     const map = new Map<string, Service[]>();
     for (const s of services) {
-      const cat = (s as any).category ?? "שירותים";
+      const cat = "שירותים";
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(s);
     }
     return map;
   }, [services]);
 
-  // Days for calendar (next 60 days, excluding Sundays)
   const today = startOfDay(new Date());
   const days = Array.from({ length: 60 }, (_, i) => addDays(today, i))
     .filter(d => {
       const dow = d.getDay();
-      const bh = businessHours.find(h => h.day_of_week === dow);
-      return bh?.is_open !== false && !isSunday(d);
+      const bh = businessHours.find(h => h.dayOfWeek === dow);
+      return bh?.isOpen !== false;
     })
     .slice(0, 30);
 
   const loadSlots = async (date: string, staffId: string | null) => {
     if (!booking.service) return;
     setLoadingSlots(true);
-    const supabase = createClient();
-    const dayOfWeek = new Date(date + "T12:00:00").getDay();
-    const bh = businessHours.find(h => h.day_of_week === dayOfWeek);
-
-    let staffSchedule = null;
-    if (staffId) {
-      const { data } = await supabase
-        .from("staff_schedules")
-        .select("*")
-        .eq("staff_id", staffId)
-        .eq("day_of_week", dayOfWeek)
-        .single();
-      staffSchedule = data;
-    }
-
-    const { data: existingAppts } = await supabase
-      .from("appointments")
-      .select("start_at, end_at, staff_id, status")
-      .eq("tenant_id", tenant.id)
-      .gte("start_at", date + "T00:00:00")
-      .lte("start_at", date + "T23:59:59")
-      .not("status", "eq", "cancelled");
-
-    const computed = getAvailableSlots({
+    const params = new URLSearchParams({
+      tenantId:  tenant.id,
+      serviceId: booking.service.id,
       date,
-      serviceDurationMinutes: booking.service.duration_minutes,
-      bufferMinutes: booking.service.buffer_minutes,
-      slotIntervalMinutes: 30,
-      staffSchedule: staffSchedule ?? null,
-      businessHours: bh ? { is_open: bh.is_open, open_time: bh.open_time, close_time: bh.close_time } : null,
-      existingAppointments: existingAppts ?? [],
-      staffId,
     });
-    setSlots(computed);
+    if (staffId) params.set("staffId", staffId);
+    const res  = await fetch(`/api/booking/slots?${params}`);
+    const data = await res.json();
+    setSlots(data.slots ?? []);
     setLoadingSlots(false);
   };
 
@@ -160,26 +129,25 @@ export function BookingShell({
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const start = new Date(`${booking.date}T${booking.time}:00`);
-    const end   = new Date(start.getTime() + booking.service.duration_minutes * 60000);
-
-    const { error } = await supabase.from("appointments").insert({
-      tenant_id:      tenant.id,
-      service_id:     booking.service.id,
-      staff_id:       booking.staff?.id ?? null,
-      customer_name:  booking.name.trim(),
-      customer_phone: booking.phone.trim(),
-      notes:          booking.notes.trim() || null,
-      start_at:       start.toISOString(),
-      end_at:         end.toISOString(),
-      price:          booking.service.price,
-      status:         "confirmed",
-      source:         "online",
+    const res = await fetch("/api/booking/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tenantId:      tenant.id,
+        serviceId:     booking.service.id,
+        staffId:       booking.staff?.id ?? null,
+        customerName:  booking.name.trim(),
+        customerPhone: booking.phone.trim(),
+        notes:         booking.notes.trim() || null,
+        date:          booking.date,
+        time:          booking.time,
+        durationMinutes: booking.service.durationMinutes,
+        price:         booking.service.price,
+      }),
     });
-
+    const data = await res.json();
     setLoading(false);
-    if (error) { toast.error("שגיאה בקביעת התור. נסה שוב."); return; }
+    if (!data.ok) { toast.error("שגיאה בקביעת התור. נסה שוב."); return; }
     setStep("success");
   };
 
@@ -193,11 +161,8 @@ export function BookingShell({
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: "#F8F9FC" }}>
-
-      {/* Dynamic color vars */}
       <style>{`:root { --p: ${p}; }`}</style>
 
-      {/* Header (booking flow only) */}
       {isInFlow && (
         <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
           <div className="flex items-center gap-3 px-4 py-3">
@@ -225,18 +190,16 @@ export function BookingShell({
           {/* ── HOME ── */}
           {step === "home" && (
             <div className="pb-32">
-              {/* Cover */}
               <div className="relative h-52 overflow-hidden" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-                {tenant.cover_url && <img src={tenant.cover_url} alt="" className="w-full h-full object-cover" />}
+                {tenant.coverUrl && <img src={tenant.coverUrl} alt="" className="w-full h-full object-cover" />}
                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top,rgba(255,255,255,0.9) 0%,transparent 60%)" }} />
               </div>
 
-              {/* Business info */}
               <div className="bg-white px-5 pb-5 shadow-sm">
                 <div className="flex items-end justify-between -mt-10 mb-4">
                   <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-card-md flex items-center justify-center font-black text-3xl text-white"
-                    style={{ background: tenant.logo_url ? "transparent" : p }}>
-                    {tenant.logo_url ? <img src={tenant.logo_url} alt="" className="w-full h-full object-cover rounded-xl" /> : tenant.name[0]}
+                    style={{ background: tenant.logoUrl ? "transparent" : p }}>
+                    {tenant.logoUrl ? <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover rounded-xl" /> : tenant.name[0]}
                   </div>
                   {tenant.instagram && (
                     <a href={`https://instagram.com/${tenant.instagram}`} target="_blank" rel="noreferrer"
@@ -249,7 +212,6 @@ export function BookingShell({
                 <p className="text-sm text-gray-400 mt-0.5">{tenant.category}</p>
                 {tenant.description && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{tenant.description}</p>}
 
-                {/* Address + Hours */}
                 {(tenant.address || tenant.phone) && (
                   <div className="flex flex-col gap-1.5 mt-3">
                     {tenant.address && (
@@ -260,7 +222,6 @@ export function BookingShell({
                   </div>
                 )}
 
-                {/* CTA buttons */}
                 <div className="flex gap-2 mt-4">
                   {tenant.whatsapp && (
                     <a href={`https://wa.me/${tenant.whatsapp}`}
@@ -278,7 +239,6 @@ export function BookingShell({
                 </div>
               </div>
 
-              {/* Services */}
               <div className="px-4 pt-5">
                 <h2 className="font-bold text-gray-900 mb-3">שירותים</h2>
                 <div className="flex flex-col gap-3">
@@ -295,15 +255,15 @@ export function BookingShell({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm text-gray-900">{s.name}</span>
-                              {s.is_popular && <Badge variant="warning" size="sm">🔥</Badge>}
+                              {s.isPopular && <Badge variant="warning" size="sm">🔥</Badge>}
                             </div>
                             {s.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{s.description}</p>}
                             <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                              <Clock size={10} />{formatDuration(s.duration_minutes)}
+                              <Clock size={10} />{formatDuration(s.durationMinutes)}
                             </p>
                           </div>
                           <div className="shrink-0 text-left">
-                            <p className="font-black text-base" style={{ color: p }}>{formatPrice(s.price)}</p>
+                            <p className="font-black text-base" style={{ color: p }}>{formatPrice(parseFloat(s.price))}</p>
                             <button className="mt-1 text-[11px] font-bold px-2 py-1 rounded-lg border-2 transition-all active:scale-95"
                               style={{ borderColor: p, color: p }}>הזמן</button>
                           </div>
@@ -322,24 +282,20 @@ export function BookingShell({
               <h2 className="font-bold text-lg text-gray-900 mb-1">עם מי תרצה?</h2>
               <p className="text-sm text-gray-400 mb-5">בחר מטפל או קבע עם הראשון שפנוי</p>
 
-              {/* Summary strip */}
               {booking.service && (
                 <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl border"
                   style={{ background: p + "10", borderColor: p + "30" }}>
                   <span className="text-xs font-semibold" style={{ color: p }}>
-                    {booking.service.name} · {formatDuration(booking.service.duration_minutes)} · {formatPrice(booking.service.price)}
+                    {booking.service.name} · {formatDuration(booking.service.durationMinutes)} · {formatPrice(parseFloat(booking.service.price))}
                   </span>
                 </div>
               )}
 
               <div className="flex flex-col gap-3">
-                {/* Any staff option */}
                 <div onClick={() => { setBooking(b => ({ ...b, staff: null })); setStep("datetime"); }}
                   className="flex items-center gap-4 bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all active:scale-[0.99] hover:border-brand-200"
                   style={{ borderColor: !booking.staff ? p : "#E5E7EB" }}>
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0 bg-brand-50">
-                    👥
-                  </div>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0 bg-brand-50">👥</div>
                   <div className="flex-1">
                     <p className="font-bold text-sm text-gray-900">כל מטפל פנוי</p>
                     <p className="text-xs text-gray-400">הזמן הכי מוקדם שפנוי</p>
@@ -355,7 +311,7 @@ export function BookingShell({
                     onClick={() => { setBooking(b => ({ ...b, staff: s })); setStep("datetime"); }}
                     className="flex items-center gap-4 bg-white rounded-2xl border-2 p-4 cursor-pointer transition-all active:scale-[0.99] hover:border-brand-200"
                     style={{ borderColor: booking.staff?.id === s.id ? p : "#E5E7EB" }}>
-                    <Avatar name={s.name} size={56} color={s.calendar_color} />
+                    <Avatar name={s.name} size={56} color={s.calendarColor} />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-gray-900">{s.name}</p>
                       {s.role && <p className="text-xs mt-0.5" style={{ color: p }}>{s.role}</p>}
@@ -377,7 +333,6 @@ export function BookingShell({
               <h2 className="font-bold text-lg text-gray-900 mb-1">בחר תאריך ושעה</h2>
               <p className="text-sm text-gray-400 mb-4">מתי יתאים לך?</p>
 
-              {/* Date scroll */}
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
                 {days.map(d => {
                   const iso = format(d, "yyyy-MM-dd");
@@ -395,7 +350,6 @@ export function BookingShell({
                 })}
               </div>
 
-              {/* Time slots */}
               {booking.date && (
                 <div>
                   <p className="text-sm font-semibold text-gray-600 mb-3">שעות פנויות</p>
@@ -416,8 +370,7 @@ export function BookingShell({
                           className="h-11 rounded-xl border-2 text-sm font-semibold transition-all active:scale-95"
                           style={booking.time === s.time
                             ? { background: p, borderColor: p, color: "#fff" }
-                            : { background: "#fff", borderColor: "#E5E7EB", color: "#374151" }
-                          }>
+                            : { background: "#fff", borderColor: "#E5E7EB", color: "#374151" }}>
                           {s.time}
                         </button>
                       ))}
@@ -434,7 +387,6 @@ export function BookingShell({
               <h2 className="font-bold text-lg text-gray-900 mb-1">הפרטים שלך</h2>
               <p className="text-sm text-gray-400 mb-5">נשלח אליך אישור בSMS</p>
 
-              {/* Booking summary */}
               <div className="bg-white rounded-2xl border p-4 mb-5 flex flex-col gap-2"
                 style={{ borderColor: p + "30", background: p + "08" }}>
                 <div className="flex justify-between text-sm">
@@ -455,7 +407,7 @@ export function BookingShell({
                 </div>
                 <div className="flex justify-between text-sm border-t border-gray-100 pt-2 mt-1">
                   <span className="font-bold text-gray-700">סה"כ</span>
-                  <span className="font-black text-lg" style={{ color: p }}>{formatPrice(booking.service?.price ?? 0)}</span>
+                  <span className="font-black text-lg" style={{ color: p }}>{formatPrice(parseFloat(booking.service?.price ?? "0"))}</span>
                 </div>
               </div>
 
@@ -524,7 +476,6 @@ export function BookingShell({
         </motion.div>
       </AnimatePresence>
 
-      {/* Sticky book button (home only) */}
       {step === "home" && (
         <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-gradient-to-t from-white to-transparent pointer-events-none z-20">
           <button onClick={() => setStep("service")}

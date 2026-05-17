@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
-import type { Staff } from "@/types/database";
+import type { Staff } from "@/lib/db/schema";
 
 const COLORS = ["#4F46E5","#7C3AED","#DB2777","#DC2626","#16A34A","#0284C7","#EA580C"];
 
@@ -16,16 +15,13 @@ export default function StaffPage() {
   const [loading,  setLoading]  = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState<Staff | null>(null);
-  const [form, setForm] = useState({ name: "", role: "", bio: "", email: "", phone: "", calendar_color: "#4F46E5" });
-
-  const supabase = createClient();
+  const [form, setForm] = useState({ name: "", role: "", bio: "", email: "", phone: "", calendarColor: "#4F46E5" });
 
   const load = async () => {
     setLoading(true);
-    const { data: member } = await supabase.from("tenant_members").select("tenant_id").single();
-    if (!member) return;
-    const { data } = await supabase.from("staff").select("*").eq("tenant_id", member.tenant_id).order("sort_order");
-    setStaff(data ?? []);
+    const res = await fetch("/api/staff");
+    const data = await res.json();
+    setStaff(data.staff ?? []);
     setLoading(false);
   };
 
@@ -33,34 +29,41 @@ export default function StaffPage() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("שם נדרש"); return; }
-    const { data: member } = await supabase.from("tenant_members").select("tenant_id").single();
-    if (!member) return;
-    if (editing) {
-      await supabase.from("staff").update(form).eq("id", editing.id);
-      toast.success("עודכן");
-    } else {
-      await supabase.from("staff").insert({ ...form, tenant_id: member.tenant_id });
-      toast.success("איש צוות נוסף");
-    }
-    setShowForm(false); setEditing(null);
-    setForm({ name: "", role: "", bio: "", email: "", phone: "", calendar_color: "#4F46E5" });
+    const res = editing
+      ? await fetch(`/api/staff/${editing.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        })
+      : await fetch("/api/staff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+    const data = await res.json();
+    if (!res.ok) { toast.error(data.error ?? "שגיאה"); return; }
+    toast.success(editing ? "עודכן" : "איש צוות נוסף");
+    setShowForm(false);
+    setEditing(null);
+    setForm({ name: "", role: "", bio: "", email: "", phone: "", calendarColor: "#4F46E5" });
     load();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("למחוק?")) return;
-    await supabase.from("staff").delete().eq("id", id);
-    toast.success("נמחק"); load();
+    await fetch(`/api/staff/${id}`, { method: "DELETE" });
+    toast.success("נמחק");
+    load();
   };
 
   const openEdit = (s: Staff) => {
     setEditing(s);
-    setForm({ name: s.name, role: s.role ?? "", bio: s.bio ?? "", email: s.email ?? "", phone: s.phone ?? "", calendar_color: s.calendar_color });
+    setForm({ name: s.name, role: s.role ?? "", bio: s.bio ?? "", email: s.email ?? "", phone: s.phone ?? "", calendarColor: s.calendarColor });
     setShowForm(true);
   };
 
   function Avatar({ name, color }: { name: string; color: string }) {
-    const initials = name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+    const initials = name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
     return <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: color }}>{initials}</div>;
   }
 
@@ -93,9 +96,9 @@ export default function StaffPage() {
               <label className="text-sm font-medium text-gray-700 block mb-2">צבע לוח שנה</label>
               <div className="flex gap-2">
                 {COLORS.map(c => (
-                  <button key={c} onClick={() => setForm(f=>({...f,calendar_color:c}))}
+                  <button key={c} onClick={() => setForm(f=>({...f,calendarColor:c}))}
                     className="w-8 h-8 rounded-full border-4 transition-all"
-                    style={{ background: c, borderColor: form.calendar_color===c ? c : "transparent", outline: form.calendar_color===c ? `2px solid ${c}` : "none", outlineOffset: "2px" }} />
+                    style={{ background: c, borderColor: form.calendarColor===c ? c : "transparent", outline: form.calendarColor===c ? `2px solid ${c}` : "none", outlineOffset: "2px" }} />
                 ))}
               </div>
             </div>
@@ -123,7 +126,7 @@ export default function StaffPage() {
           {staff.map(s => (
             <Card key={s.id} padding="md">
               <div className="flex items-center gap-4">
-                <Avatar name={s.name} color={s.calendar_color} />
+                <Avatar name={s.name} color={s.calendarColor} />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900">{s.name}</p>
                   {s.role && <p className="text-xs text-brand-600 mt-0.5">{s.role}</p>}

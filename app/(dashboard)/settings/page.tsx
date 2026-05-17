@@ -5,46 +5,52 @@ import { Save, ExternalLink, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
-import type { Tenant } from "@/types/database";
+import type { Tenant } from "@/lib/db/schema";
 
 export default function SettingsPage() {
   const [tenant,  setTenant]  = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "", phone: "", whatsapp: "", email: "", instagram: "",
-    address: "", description: "", primary_color: "#4F46E5",
-    booking_advance_days: 60, cancellation_hours: 24,
+    address: "", description: "", primaryColor: "#4F46E5",
+    bookingAdvanceDays: 60, cancellationHours: 24,
   });
-  const supabase = createClient();
 
   useEffect(() => {
     (async () => {
-      const { data: member } = await supabase.from("tenant_members").select("tenant_id, tenants(*)").single();
-      if (!member) return;
-      const t = member.tenants as unknown as Tenant;
+      const res = await fetch("/api/settings");
+      if (!res.ok) return;
+      const data = await res.json();
+      const t: Tenant = data.tenant;
       setTenant(t);
       setForm({
-        name: t.name, phone: t.phone ?? "", whatsapp: t.whatsapp ?? "",
-        email: t.email ?? "", instagram: t.instagram ?? "",
-        address: t.address ?? "", description: t.description ?? "",
-        primary_color: t.primary_color, booking_advance_days: t.booking_advance_days,
-        cancellation_hours: t.cancellation_hours,
+        name: t.name,
+        phone: t.phone ?? "",
+        whatsapp: t.whatsapp ?? "",
+        email: t.email ?? "",
+        instagram: t.instagram ?? "",
+        address: t.address ?? "",
+        description: t.description ?? "",
+        primaryColor: t.primaryColor,
+        bookingAdvanceDays: t.bookingAdvanceDays,
+        cancellationHours: t.cancellationHours,
       });
     })();
   }, []);
 
   const handleSave = async () => {
-    if (!tenant) return;
     setLoading(true);
-    const { error } = await supabase.from("tenants").update(form).eq("id", tenant.id);
+    const res = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
     setLoading(false);
-    if (error) { toast.error("שגיאה בשמירה"); return; }
+    if (!res.ok) { toast.error("שגיאה בשמירה"); return; }
     toast.success("ההגדרות נשמרו");
   };
 
-  const bookingUrl = tenant ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/book/${tenant.slug}` : "";
-
+  const bookingUrl = tenant ? `${typeof window !== "undefined" ? window.location.origin : ""}/book/${tenant.slug}` : "";
   const COLORS = ["#4F46E5","#7C3AED","#DB2777","#DC2626","#EA580C","#16A34A","#0284C7","#374151"];
 
   return (
@@ -59,7 +65,6 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      {/* Booking page link */}
       {tenant && (
         <Card className="mb-5 border-brand-100 bg-brand-50/50">
           <div className="flex items-center justify-between gap-3">
@@ -105,9 +110,9 @@ export default function SettingsPage() {
             <label className="text-sm font-medium text-gray-700 block mb-3">צבע ראשי</label>
             <div className="flex flex-wrap gap-3">
               {COLORS.map(c => (
-                <button key={c} onClick={() => setForm(f=>({...f,primary_color:c}))}
+                <button key={c} onClick={() => setForm(f=>({...f,primaryColor:c}))}
                   className="w-10 h-10 rounded-full border-4 transition-all"
-                  style={{ background:c, borderColor: form.primary_color===c ? c : "transparent", outline: form.primary_color===c ? `3px solid ${c}40` : "none", outlineOffset:"2px" }} />
+                  style={{ background:c, borderColor: form.primaryColor===c ? c : "transparent", outline: form.primaryColor===c ? `3px solid ${c}40` : "none", outlineOffset:"2px" }} />
               ))}
             </div>
           </div>
@@ -117,10 +122,10 @@ export default function SettingsPage() {
           <CardTitle className="mb-4">הגדרות הזמנות</CardTitle>
           <div className="grid grid-cols-2 gap-3">
             <Input label="ימים מראש" type="number" min={1} max={365}
-              value={form.booking_advance_days} onChange={e => setForm(f=>({...f,booking_advance_days:+e.target.value}))}
+              value={form.bookingAdvanceDays} onChange={e => setForm(f=>({...f,bookingAdvanceDays:+e.target.value}))}
               hint="כמה ימים מראש ניתן לקבוע" />
             <Input label="שעות לביטול" type="number" min={0}
-              value={form.cancellation_hours} onChange={e => setForm(f=>({...f,cancellation_hours:+e.target.value}))}
+              value={form.cancellationHours} onChange={e => setForm(f=>({...f,cancellationHours:+e.target.value}))}
               hint="מינימום שעות לביטול תור" />
           </div>
         </Card>

@@ -1,22 +1,28 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireSession } from "@/lib/auth/session";
+import { db, tenants, tenantMembers } from "@/lib/db";
+import { eq } from "drizzle-orm";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await requireSession();
+  if (!session) redirect("/login");
 
-  // Get tenant
-  const { data: member } = await supabase
-    .from("tenant_members")
-    .select("tenant_id, role, tenants(*)")
-    .eq("user_id", user.id)
-    .single();
+  const [member] = await db
+    .select({ tenantId: tenantMembers.tenantId })
+    .from(tenantMembers)
+    .where(eq(tenantMembers.userId, session.userId))
+    .limit(1);
 
   if (!member) redirect("/onboarding");
-  const tenant = member.tenants as any;
-  if (!tenant?.onboarding_completed) redirect("/onboarding");
+
+  const [tenant] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.id, member.tenantId))
+    .limit(1);
+
+  if (!tenant || !tenant.onboardingCompleted) redirect("/onboarding");
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#F8F9FC]">

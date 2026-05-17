@@ -6,14 +6,16 @@
     "dev": "next dev -p 3000 -H 0.0.0.0",
     "build": "next build",
     "start": "next start -p 3000 -H 0.0.0.0",
-    "lint": "next lint"
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "next": "14.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@supabase/supabase-js": "^2.43.4",
-    "@supabase/ssr": "^0.4.0",
+    "drizzle-orm": "^0.30.10",
+    "postgres": "^3.4.4",
+    "iron-session": "^8.0.3",
+    "bcryptjs": "^2.4.3",
     "framer-motion": "^11.1.9",
     "lucide-react": "^0.378.0",
     "clsx": "^2.1.1",
@@ -21,9 +23,6 @@
     "class-variance-authority": "^0.7.0",
     "date-fns": "^3.6.0",
     "zod": "^3.23.8",
-    "react-hook-form": "^7.51.4",
-    "@hookform/resolvers": "^3.4.2",
-    "recharts": "^2.12.7",
     "sonner": "^1.4.41"
   },
   "devDependencies": {
@@ -31,6 +30,8 @@
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
+    "@types/bcryptjs": "^2.4.6",
+    "drizzle-kit": "^0.20.18",
     "tailwindcss": "^3.4.3",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",

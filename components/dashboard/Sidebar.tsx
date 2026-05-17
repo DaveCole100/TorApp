@@ -3,19 +3,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Scissors, Users, UserCheck,
-  Settings, LogOut, ChevronLeft, Bell, ExternalLink,
+  Settings, LogOut, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { createClient } from "@/lib/supabase/client";
-import type { Tenant } from "@/types/database";
+import type { Tenant } from "@/lib/db/schema";
 
 const NAV = [
-  { href: "/dashboard",     icon: LayoutDashboard, label: "לוח בקרה"   },
-  { href: "/appointments",  icon: Calendar,        label: "תורים"       },
-  { href: "/services",      icon: Scissors,        label: "שירותים"     },
-  { href: "/staff",         icon: UserCheck,       label: "צוות"        },
-  { href: "/customers",     icon: Users,           label: "לקוחות"      },
-  { href: "/settings",      icon: Settings,        label: "הגדרות"      },
+  { href: "/dashboard",    icon: LayoutDashboard, label: "לוח בקרה" },
+  { href: "/appointments", icon: Calendar,        label: "תורים"    },
+  { href: "/services",     icon: Scissors,        label: "שירותים"  },
+  { href: "/staff",        icon: UserCheck,       label: "צוות"     },
+  { href: "/customers",    icon: Users,           label: "לקוחות"   },
+  { href: "/settings",     icon: Settings,        label: "הגדרות"   },
 ];
 
 export function Sidebar({ tenant }: { tenant: Tenant }) {
@@ -23,8 +22,7 @@ export function Sidebar({ tenant }: { tenant: Tenant }) {
   const router   = useRouter();
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
   };
@@ -35,7 +33,7 @@ export function Sidebar({ tenant }: { tenant: Tenant }) {
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"
-          style={{ background: tenant.primary_color }}>
+          style={{ background: tenant.primaryColor }}>
           {tenant.name[0]}
         </div>
         <div className="min-w-0">
