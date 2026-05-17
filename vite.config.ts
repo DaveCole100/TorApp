@@ -18,7 +18,8 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "client/src") },
   },
   optimizeDeps: {
-    disabled: true,
+    noDiscovery: true,
+    include: [],
   },
   root: "client",
   build: { outDir: "../dist/public", emptyOutDir: true },
