@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Avatar, Badge, Card, Spinner } from "@/components/ui";
 import {
   MapPin, Phone, Clock, Star, Instagram, MessageCircle,
-  Scissors, ChevronLeft, Image, Users, ChevronRight,
-} from "lucide-react";
+  Scissors, ChevronLeft, Users, ChevronRight,
+} from "@/components/icons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
