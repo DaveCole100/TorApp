@@ -17,6 +17,9 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "client/src") },
   },
+  optimizeDeps: {
+    disabled: true,
+  },
   root: "client",
   build: { outDir: "../dist/public", emptyOutDir: true },
   server: {
