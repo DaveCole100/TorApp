@@ -16,4 +16,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "fuser -k 5000/tcp 2>/dev/null || true; npm install --prefer-offline 2>/dev/null || npm install; npm run dev"
+args = "git pull origin main; fuser -k 5000/tcp 2>/dev/null || true; npm install --prefer-offline 2>/dev/null || npm install; npm run dev"
