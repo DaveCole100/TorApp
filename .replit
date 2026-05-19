@@ -4,7 +4,7 @@ modules = ["nodejs-20", "nix"]
 channel = "stable-24_05"
 
 [[ports]]
-localPort = 3000
+localPort = 5000
 externalPort = 80
 
 [workflows]
@@ -16,4 +16,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install && npm run dev"
+args = "fuser -k 5000/tcp 2>/dev/null || true; npm install --prefer-offline 2>/dev/null || npm install; npm run dev"
