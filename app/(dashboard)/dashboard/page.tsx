@@ -134,7 +134,7 @@ export default async function DashboardPage() {
                     <p className="text-[10px] text-gray-400">{format(appt.endAt, "HH:mm")}</p>
                   </div>
                   <div className="w-0.5 h-8 rounded-full shrink-0"
-                    style={{ background: tenant?.primaryColor ?? "#4F46E5" }} />
+                    style={{ background: tenant?.primaryColor ?? "#0284C7" }} />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-gray-900 truncate">{appt.customerName}</p>
                     <p className="text-xs text-gray-400 truncate">

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         category,
         phone:               phone || null,
         whatsapp:            whatsapp || null,
-        primaryColor:        primaryColor ?? "#4F46E5",
+        primaryColor:        primaryColor ?? "#0284C7",
         onboardingCompleted: true,
       })
       .returning();

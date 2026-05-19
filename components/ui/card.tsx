@@ -10,10 +10,9 @@ export function Card({ className, padding = "md", hover, children, ...props }: C
     <div
       className={cn(
         "bg-white border border-gray-100 rounded-2xl shadow-card",
-        padding === "sm"  && "p-4",
-        padding === "md"  && "p-5",
-        padding === "lg"  && "p-6",
-        padding === "none" && "",
+        padding === "sm"   && "p-4",
+        padding === "md"   && "p-5",
+        padding === "lg"   && "p-6",
         hover && "transition-shadow hover:shadow-card-md cursor-pointer",
         className
       )}
@@ -43,7 +42,7 @@ export function CardTitle({ className, children, ...props }: React.HTMLAttribute
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse bg-gray-100 rounded-xl", className)}
+      className={cn("skeleton rounded-xl", className)}
       {...props}
     />
   );

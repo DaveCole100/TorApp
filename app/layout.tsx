@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Rubik } from "next/font/google";
+import { Plus_Jakarta_Sans, Rubik } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 const rubik = Rubik({
   subsets: ["latin", "hebrew"],
-  variable: "--font-geist-sans",
+  variable: "--font-rubik",
   display: "swap",
 });
 
@@ -20,12 +27,12 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#4F46E5",
+  themeColor: "#0284C7",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="he" dir="rtl" className={rubik.variable}>
+    <html lang="he" dir="rtl" className={`${jakarta.variable} ${rubik.variable}`}>
       <body className="font-sans antialiased">
         {children}
         <Toaster position="top-center" richColors closeButton />

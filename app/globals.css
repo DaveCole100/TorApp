@@ -4,8 +4,15 @@
 
 @layer base {
   :root {
-    --background: #F8F9FC;
-    --foreground: #111827;
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+    --border: #E0F0F8;
+    --muted: #EFF7FB;
+    --primary: #0284C7;
+    --primary-foreground: #FFFFFF;
+    --success: #059669;
+    --destructive: #DC2626;
+    --ring: #0284C7;
   }
 
   * { box-sizing: border-box; }
@@ -25,15 +32,14 @@
   }
 
   ::selection {
-    background: #C7D2FE;
-    color: #312E81;
+    background: #BAE6FD;
+    color: #0C4A6E;
   }
 }
 
 @layer utilities {
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
-
   .text-balance { text-wrap: balance; }
 
   .animate-in {
@@ -42,9 +48,24 @@
   .slide-in {
     animation: slideUp 0.28s cubic-bezier(0.22,1,0.36,1);
   }
+
+  /* Shimmer skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #E0F2FE 25%, #F0F9FF 50%, #E0F2FE 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(224,240,248,0.8);
+  }
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+::-webkit-scrollbar-thumb { background: #BAE6FD; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #7DD3FC; }

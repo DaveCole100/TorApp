@@ -51,7 +51,7 @@ function Avatar({ name, size = 48, color }: { name: string; size?: number; color
   const initials = name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return (
     <div className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
-      style={{ width: size, height: size, background: color ?? "#4F46E5", fontSize: size * 0.35 }}>
+      style={{ width: size, height: size, background: color ?? "#0284C7", fontSize: size * 0.35 }}>
       {initials}
     </div>
   );

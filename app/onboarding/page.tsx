@@ -40,7 +40,7 @@ export default function OnboardingPage() {
   const [category, setCategory] = useState("");
   const [phone,    setPhone]    = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [color,    setColor]    = useState("#4F46E5");
+  const [color,    setColor]    = useState("#0284C7");
   const [schedule, setSchedule] = useState<Schedule>(DEFAULT_SCHEDULE);
 
   const slugify = (v: string) =>

@@ -15,7 +15,7 @@ export default function StaffPage() {
   const [loading,  setLoading]  = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState<Staff | null>(null);
-  const [form, setForm] = useState({ name: "", role: "", bio: "", email: "", phone: "", calendarColor: "#4F46E5" });
+  const [form, setForm] = useState({ name: "", role: "", bio: "", email: "", phone: "", calendarColor: "#0284C7" });
 
   const load = async () => {
     setLoading(true);
@@ -45,7 +45,7 @@ export default function StaffPage() {
     toast.success(editing ? "עודכן" : "איש צוות נוסף");
     setShowForm(false);
     setEditing(null);
-    setForm({ name: "", role: "", bio: "", email: "", phone: "", calendarColor: "#4F46E5" });
+    setForm({ name: "", role: "", bio: "", email: "", phone: "", calendarColor: "#0284C7" });
     load();
   };
 

@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "", phone: "", whatsapp: "", email: "", instagram: "",
-    address: "", description: "", primaryColor: "#4F46E5",
+    address: "", description: "", primaryColor: "#0284C7",
     bookingAdvanceDays: 60, cancellationHours: 24,
   });
 

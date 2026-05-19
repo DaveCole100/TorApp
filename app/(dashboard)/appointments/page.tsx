@@ -124,7 +124,7 @@ export default async function AppointmentsPage({
                 {appts.map(a => (
                   <Card key={a.id} padding="md" className="flex items-center gap-4">
                     <div className="w-1 self-stretch rounded-full shrink-0"
-                      style={{ background: a.staffColor ?? "#4F46E5" }} />
+                      style={{ background: a.staffColor ?? "#0284C7" }} />
                     <div className="text-center w-12 shrink-0">
                       <p className="font-bold text-sm text-gray-900">{format(a.startAt, "HH:mm")}</p>
                       <p className="text-[10px] text-gray-400">{format(a.endAt, "HH:mm")}</p>

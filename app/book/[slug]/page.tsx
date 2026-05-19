@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title: tenant ? `${tenant.name} — קביעת תור` : "קביעת תור",
     description: `קבע תור ב${tenant?.name ?? ""}`,
-    themeColor: tenant?.primaryColor ?? "#4F46E5",
+    themeColor: tenant?.primaryColor ?? "#0284C7",
   };
 }
 

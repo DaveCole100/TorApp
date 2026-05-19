@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       bio:           body.bio || null,
       email:         body.email || null,
       phone:         body.phone || null,
-      calendarColor: body.calendarColor ?? "#4F46E5",
+      calendarColor: body.calendarColor ?? "#0284C7",
       isActive:      true,
       acceptsBookings: true,
     })
