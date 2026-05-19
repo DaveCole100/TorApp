@@ -3,7 +3,7 @@ export async function register() {
     const postgres = (await import("postgres")).default;
     const sql = postgres(process.env.DATABASE_URL, { max: 1 });
     try {
-      await sql`
+      await sql.unsafe(`
         CREATE TABLE IF NOT EXISTS users (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           email TEXT NOT NULL UNIQUE,
@@ -143,7 +143,7 @@ export async function register() {
         );
         CREATE INDEX IF NOT EXISTS appt_tenant_start_idx ON appointments(tenant_id, start_at);
         CREATE INDEX IF NOT EXISTS appt_staff_start_idx ON appointments(staff_id, start_at);
-      `;
+      `);
       console.log("✅ Database tables ready");
     } catch (err) {
       console.error("❌ DB setup error:", err);
