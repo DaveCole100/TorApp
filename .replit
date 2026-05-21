@@ -4,7 +4,7 @@ modules = ["nodejs-20", "nix"]
 channel = "stable-24_05"
 
 [[ports]]
-localPort = 5000
+localPort = 3000
 externalPort = 80
 
 [workflows]
@@ -16,4 +16,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "git pull origin main; fuser -k 5000/tcp 2>/dev/null || true; npm install --prefer-offline 2>/dev/null || npm install; npm run dev"
+args = "git reset --hard origin/main; fuser -k 3000/tcp 2>/dev/null || true; npm install --prefer-offline 2>/dev/null || npm install; npm run dev"
