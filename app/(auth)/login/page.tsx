@@ -108,7 +108,12 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-semibold text-gray-700 block mb-1.5">סיסמה</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-semibold text-gray-700">סיסמה</label>
+                <Link href="/forgot-password" className="text-xs font-semibold hover:underline" style={{ color: "#0284C7" }}>
+                  שכחת סיסמה?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="password" placeholder="••••••••" required dir="ltr"
