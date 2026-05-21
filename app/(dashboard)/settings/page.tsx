@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Save, ExternalLink, Copy } from "lucide-react";
+import { Save, ExternalLink, Copy, Instagram, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -84,6 +84,30 @@ export default function SettingsPage() {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Instagram booking link */}
+      {tenant && (
+        <div className="rounded-2xl p-5 mb-5 border"
+          style={{ background: "linear-gradient(135deg, #833AB410, #E1306C10, #F7773710)", borderColor: "#E1306C20" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Instagram size={18} style={{ color: "#E1306C" }} />
+            <p className="font-black text-gray-900">הזמנות מאינסטגרם</p>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">שים את הקישור הזה ב-Bio שלך באינסטגרם — לקוחות שלוחצים יראו באנר "הגעת מאינסטגרם"</p>
+          <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5 border border-gray-100">
+            <Link size={13} className="text-gray-400 shrink-0" />
+            <span className="text-xs text-gray-600 flex-1 truncate dir-ltr" dir="ltr">
+              {bookingUrl}?utm_source=instagram
+            </span>
+            <button
+              onClick={() => { navigator.clipboard.writeText(`${bookingUrl}?utm_source=instagram`); toast.success("קישור אינסטגרם הועתק!"); }}
+              className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg text-white transition-all"
+              style={{ background: "linear-gradient(90deg, #833AB4, #E1306C)" }}>
+              העתק
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col gap-5">

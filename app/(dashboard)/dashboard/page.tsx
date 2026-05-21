@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/session";
-import { db, appointments, services, staff, tenants, tenantMembers } from "@/lib/db";
-import { eq, and, gte, lte, ne, gt, asc } from "drizzle-orm";
+import { db, appointments, services, staff, tenants, tenantMembers, businessHours } from "@/lib/db";
+import { eq, and, gte, lte, ne, gt, asc, count } from "drizzle-orm";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { he } from "date-fns/locale";
-import { Calendar, Clock, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, TrendingUp, CheckCircle2, ChevronLeft, Rocket } from "lucide-react";
 import { formatPrice, formatAppointmentDate, STATUS_LABELS } from "@/lib/utils/format";
 import Link from "next/link";
 
@@ -20,10 +20,26 @@ export default async function DashboardPage() {
   if (!member) redirect("/onboarding");
 
   const [tenant] = await db
-    .select({ name: tenants.name, primaryColor: tenants.primaryColor, slug: tenants.slug })
+    .select({ name: tenants.name, primaryColor: tenants.primaryColor, slug: tenants.slug, instagram: tenants.instagram, whatsapp: tenants.whatsapp })
     .from(tenants)
     .where(eq(tenants.id, member.tenantId))
     .limit(1);
+
+  // Onboarding checklist data
+  const [[svcCount], [staffCount], [hoursCount]] = await Promise.all([
+    db.select({ n: count() }).from(services).where(and(eq(services.tenantId, member.tenantId), eq(services.isActive, true))),
+    db.select({ n: count() }).from(staff).where(and(eq(staff.tenantId, member.tenantId), eq(staff.isActive, true))),
+    db.select({ n: count() }).from(businessHours).where(eq(businessHours.tenantId, member.tenantId)),
+  ]);
+  const checklist = [
+    { label: "הוסף שירות ראשון",      done: (svcCount?.n ?? 0) > 0,   href: "/services"  },
+    { label: "הוסף איש צוות",          done: (staffCount?.n ?? 0) > 0,  href: "/staff"     },
+    { label: "הגדר שעות פעילות",       done: (hoursCount?.n ?? 0) > 0,  href: "/settings"  },
+    { label: "הגדר ווטסאפ לעסק",       done: !!tenant?.whatsapp,         href: "/settings"  },
+    { label: "שתף קישור הזמנות",       done: false,                      href: `/book/${tenant?.slug}` },
+  ];
+  const doneCount  = checklist.filter(c => c.done).length;
+  const allDone    = doneCount === checklist.length;
 
   const today      = new Date();
   const todayStart = startOfDay(today);
@@ -140,6 +156,40 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {/* ── Onboarding checklist ── */}
+        {!allDone && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-7">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Rocket size={16} style={{ color: p }} />
+                <h2 className="font-black text-gray-900 text-base">התחל עם TorApp</h2>
+              </div>
+              <span className="text-xs font-bold text-gray-400">{doneCount}/{checklist.length} הושלמו</span>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1 bg-gray-100">
+              <div className="h-full transition-all duration-700 rounded-full"
+                style={{ width: `${(doneCount / checklist.length) * 100}%`, background: p }} />
+            </div>
+            <div className="divide-y divide-gray-50">
+              {checklist.map((item) => (
+                <Link key={item.label} href={item.href}
+                  target={item.href.startsWith("/book") ? "_blank" : undefined}
+                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition-colors group">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all"
+                    style={{ background: item.done ? "#22C55E" : "#F3F4F6", border: item.done ? "none" : "2px solid #E5E7EB" }}>
+                    {item.done && <CheckCircle2 size={14} color="#fff" strokeWidth={2.5} />}
+                  </div>
+                  <p className={`flex-1 text-sm font-semibold ${item.done ? "text-gray-400 line-through" : "text-gray-900"}`}>
+                    {item.label}
+                  </p>
+                  {!item.done && <ChevronLeft size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Content grid ── */}
         <div className="grid lg:grid-cols-[1fr_320px] gap-5">
