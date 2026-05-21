@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: ["postgres"],
-    instrumentationHook: true,
-  },
+  serverExternalPackages: ["postgres"],
 };
 
 module.exports = nextConfig;
