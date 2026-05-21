@@ -45,7 +45,7 @@ function Avatar({ name, size = 48, color }: { name: string; size?: number; color
 }
 
 function ProgressDots({ step, p }: { step: Step; p: string }) {
-  const steps: Step[] = ["service", "staff", "datetime", "details"];
+  const steps: Step[] = ["staff", "datetime", "details"];
   const idx = steps.indexOf(step);
   if (idx < 0) return null;
   return (
@@ -120,7 +120,7 @@ export function BookingShell({
   };
 
   const goBack = () => {
-    const flow: Step[] = ["home", "service", "staff", "datetime", "details"];
+    const flow: Step[] = ["home", "staff", "datetime", "details"];
     const idx = flow.indexOf(step);
     if (idx > 0) setStep(flow[idx - 1]);
   };
@@ -257,7 +257,7 @@ export function BookingShell({
               )}
 
               {/* ── Services list ── */}
-              <div className="px-4 pt-6">
+              <div id="services" className="px-4 pt-6">
                 <div className="flex items-baseline justify-between mb-4">
                   <h2 className="text-xl font-black text-gray-900">שירותים</h2>
                   <span className="text-sm text-gray-400">{services.length} זמינים</span>
@@ -557,7 +557,7 @@ export function BookingShell({
           <motion.button
             initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, duration: 0.4 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setStep("service")}
+            onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}
             className="w-full h-14 rounded-2xl text-white font-black text-base flex items-center justify-center gap-2 shadow-lg"
             style={{ background: p }}>
             קבע תור עכשיו
